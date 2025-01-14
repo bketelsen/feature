@@ -4,7 +4,7 @@
 (ab)Use devcontainer features outside of devcontainers.
 
 ## Installation
-Download a [release] binary, make sure it's executable e.g. `chmod +x feature`. Optionally put it in a path.
+Download a [release](https://github.com/bketelsen/feature/releases) binary, make sure it's executable e.g. `chmod +x feature`. Optionally put it in a path.
 
 ## Prerequisites
 
