@@ -1,7 +1,7 @@
 # Feature
 
 ## Description
-(ab)Use [devcontainer features](https://github.com/devcontainers/features) outside of devcontainers.
+(ab)Use devcontainer features outside of devcontainers.
 
 ## Installation
 TODO
