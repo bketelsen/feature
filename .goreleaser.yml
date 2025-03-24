@@ -1,20 +1,15 @@
-# This is an example .goreleaser.yml file with some sensible defaults.
-# Make sure to check the documentation at https://goreleaser.com
-
-# The lines below are called `modelines`. See `:help modeline`
-# Feel free to remove those if you don't want/need to use them.
-# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
 version: 2
-
+project_name: feature 
 before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
-    # you may remove this if you don't need go generate
-    - go generate ./...
-
+after:
+  hooks:
+    - go run main.go gendocs
 builds:
   - env:
       - CGO_ENABLED=0
@@ -23,9 +18,15 @@ builds:
     goarch:
       - amd64
       - arm64
+    binary: feature 
+    id: feature 
+    # Default: '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'.
+    # Templates: allowed.
+    ldflags:
+      - '-s -w -X github.com/bketelsen/feature/cmd.date={{ .CommitDate }} -X github.com/bketelsen/feature/cmd.treeState={{ .IsGitDirty }} -X github.com/bketelsen/feature/cmd.version={{.Version}} -X github.com/bketelsen/feature/cmd.commit={{.Commit}} -X github.com/bketelsen/feature/cmd.builtBy=goreleaser'
 
 archives:
-  - format: binary
+  - formats: [ 'tar.gz' ]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -37,7 +38,7 @@ archives:
     # use zip for windows archives
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [ 'zip' ]
 
 changelog:
   sort: asc
