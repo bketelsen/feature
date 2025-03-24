@@ -46,7 +46,7 @@ func GetOptionsForFeature(root, feature string) (FeatureOptions, error) {
 
 	// make sure the feature exists
 	if _, err := os.Stat(filepath.Join(root, "src", feature)); os.IsNotExist(err) {
-		return FeatureOptions{}, fmt.Errorf("Feature %s not found", feature)
+		return FeatureOptions{}, fmt.Errorf("feature %s not found", feature)
 	}
 
 	// Construct the path to the devcontainer-feature.json file

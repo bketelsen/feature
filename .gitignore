@@ -30,3 +30,7 @@ go.work
 feature
 # Added by goreleaser init:
 dist/
+
+.hugo_build.lock
+/public
+/dist

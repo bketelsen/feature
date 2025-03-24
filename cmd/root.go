@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/bketelsen/feature/internal/options"
-	"github.com/spf13/cobra"
+	"github.com/bketelsen/toolbox/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -91,7 +91,7 @@ func init() {
 
 func checkRootUser(_ *cobra.Command) error {
 	if os.Geteuid() != 0 {
-		return fmt.Errorf("This command must be run as root")
+		return fmt.Errorf("this command must be run as root")
 	}
 	return nil
 }
@@ -136,7 +136,7 @@ func ensureCommonUtils(_ *cobra.Command, featureRoot string) error {
 
 		featureInstallPath := filepath.Join(featureRoot, "src", "common-utils", "install.sh")
 		if _, err := os.Stat(featureInstallPath); os.IsNotExist(err) {
-			return fmt.Errorf("Feature %s does not have an install script", "common-utils")
+			return fmt.Errorf("feature %s does not have an install script", "common-utils")
 		}
 		command := "bash"
 		args := []string{featureInstallPath}
@@ -153,7 +153,7 @@ func installFeature(_ *cobra.Command, featureRoot, feature string) error {
 
 	featureInstallPath := filepath.Join(featureRoot, "src", feature, "install.sh")
 	if _, err := os.Stat(featureInstallPath); os.IsNotExist(err) {
-		return fmt.Errorf("Feature %s does not have an install script", feature)
+		return fmt.Errorf("feature %s does not have an install script", feature)
 	}
 	command := "bash"
 	args := []string{featureInstallPath}
