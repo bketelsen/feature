@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -33,6 +34,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		featureRoot, _ := cmd.Flags().GetString("featureRoot")
+		featureRoot = ExpandPath(featureRoot)
 		// check if the featureRoot exists
 		if _, err := os.Stat(featureRoot); os.IsNotExist(err) {
 			// create the featureRoot
@@ -184,4 +186,25 @@ func updateEnvironment(_ *cobra.Command, opts options.FeatureOptions) error {
 		}
 	}
 	return nil
+}
+
+// ExpandPath is a helper function to expand a relative or home-relative path to an absolute path.
+//
+// eg. ~/.someconf -> /home/alec/.someconf
+func ExpandPath(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	if strings.HasPrefix(path, "~/") {
+		user, err := user.Current()
+		if err != nil {
+			return path
+		}
+		return filepath.Join(user.HomeDir, path[2:])
+	}
+	abspath, err := filepath.Abs(path)
+	if err != nil {
+		return path
+	}
+	return abspath
 }
