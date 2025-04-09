@@ -1,7 +1,7 @@
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
-github.com/bketelsen/toolbox v0.8.0 h1:IaCw1O9s3v8BPmIZNlKtE1inVfaEu2pM2rjJYra9ZpU=
-github.com/bketelsen/toolbox v0.8.0/go.mod h1:XGfiiH/z6wN/iwKmVSKoiv6Iji0r3rnjHY+dkM+ArhM=
+github.com/bketelsen/toolbox v0.8.1 h1:l7U/xggtONSJd57hSP1nq6yoDZDip6aV7l0rmAV4k8g=
+github.com/bketelsen/toolbox v0.8.1/go.mod h1:XGfiiH/z6wN/iwKmVSKoiv6Iji0r3rnjHY+dkM+ArhM=
 github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc h1:4pZI35227imm7yK2bGPcfpFEmuY1gc2YSTShr4iJBfs=
 github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc/go.mod h1:X4/0JoqgTIPSFcRA/P6INZzIuyqdFY5rm8tb41s9okk=
 github.com/charmbracelet/lipgloss v1.1.0 h1:vYXsiLHVkK7fp74RkV7b2kq9+zDLoEU4MZoFqR/noCY=
