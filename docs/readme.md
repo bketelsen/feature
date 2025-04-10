@@ -6,12 +6,7 @@
 
 ## Installation
 
-Download a [release](https://github.com/bketelsen/feature/releases) binary, make sure it's executable e.g. `chmod +x feature`. Optionally put it in a path.
-
-```bash
-curl -o feature -sSL https://github.com/bketelsen/feature/releases/download/v0.0.3/feature_Linux_x86_64
-chmod +x feature
-```
+See [install](install)
 
 ## Prerequisites
 

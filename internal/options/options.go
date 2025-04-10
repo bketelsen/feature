@@ -1,6 +1,8 @@
 /*
 Copyright © 2025 Brian Ketelsen <bketelsen@gmail.com>
 */
+
+// Package options provides a way to read and parse the devcontainer-feature.json file
 package options
 
 import (
@@ -66,5 +68,4 @@ func GetOptionsForFeature(root, feature string) (FeatureOptions, error) {
 
 	// Return the struct
 	return fo, nil
-
 }
