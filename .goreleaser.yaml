@@ -1,0 +1,107 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+project_name: feature
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    - go install github.com/a-h/templ/cmd/templ@latest
+    - ./scripts/completions.sh
+    - ./scripts/manpages.sh
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+      - NOCOLOR=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    binary: feature
+    id: feature
+    main: ./cmd/feature
+    # Default: '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'.
+    # Templates: allowed.
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }} -X main.builtBy=goreleaser
+archives:
+  - formats: [ 'tar.gz' ]
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        formats: [ 'zip' ]
+    files:
+      - src: "manpages/*"
+        strip_parent: true
+
+changelog:
+  sort: asc
+  use: github
+  format: "{{ .SHA }}: {{ .Message }}{{ with .AuthorUsername }} (@{{ . }}){{ end }}"
+  filters:
+    exclude:
+      - "^test:"
+      - "^test\\("
+      - "^chore: update$"
+      - "^chore: docs$"
+      - "^docs: update$"
+      - "^chore: typo$"
+      - "^chore: auto-update generated files$"
+      - "^chore\\(deps\\): "
+      - "^(build|ci): "
+      - "merge conflict"
+      - "merge conflict"
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+      - go mod tidy
+  groups:
+    - title: "New Features"
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 100
+    - title: "Security updates"
+      regexp: '^.*?sec(\(.+\))??!?:.+$'
+      order: 150
+    - title: "Bug fixes"
+      regexp: '^.*?(fix|refactor)(\(.+\))??!?:.+$'
+      order: 200
+    - title: "Documentation updates"
+      regexp: ^.*?docs?(\(.+\))??!?:.+$
+      order: 400
+    - title: Other work
+      order: 9999
+
+release:
+  footer: >-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+
+announce:
+  bluesky:
+    # Whether it's enabled or not.
+    #
+    # Templates: allowed (since v2.6).
+    enabled: false
+
+    # Message template to use while publishing.
+    #
+    # Default: '{{ .ProjectName }} {{ .Tag }} is out! Check it out at {{ .ReleaseURL }}'.
+    # Templates: allowed.
+    message_template: "Fresh bits hot off the pipeline!\n\n{{ .ProjectName }} {{ .Tag }} is out! Check it out at {{ .ReleaseURL }}\n\nUse {{ .ProjectName }} to track your deployed containers and virtual machines."
+
+    # The username of the account that will post
+    # to Bluesky
+    username: "brian.dev"
