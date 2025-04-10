@@ -8,7 +8,6 @@
 
 See [install](install)
 
-
 ## Prerequisites
 
 `feature` requires an environment (vps, container, VM, etc) that somewhat resembles the base images used by the devcontainers project.
