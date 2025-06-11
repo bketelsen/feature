@@ -4,12 +4,7 @@ when:
 
 steps:
   - name: build
-    image: debian
+    image: golang:1.24
     commands:
-      - echo "This is the build step"
-      - echo "binary-data-123" > executable
-  - name: a-test-step
-    image: golang:1.16
-    commands:
-      - echo "Testing ..."
-      - ./executable
+      - go build ./cmd/feature
+      - ./feature --version
