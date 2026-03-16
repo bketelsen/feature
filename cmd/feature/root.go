@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/bketelsen/feature/internal/options"
-	"github.com/bketelsen/toolbox/cobra"
+	"github.com/spf13/cobra"
 )
 
 func checkRootUser(_ *cobra.Command) error {

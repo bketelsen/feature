@@ -1,31 +1,28 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/bketelsen/feature/internal/options"
-	"github.com/bketelsen/toolbox"
-	"github.com/bketelsen/toolbox/cobra"
-	"github.com/bketelsen/toolbox/ui"
+	"github.com/charmbracelet/fang"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
-	"go.uber.org/automaxprocs/maxprocs"
-
-	goversion "github.com/bketelsen/toolbox/go-version"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 var (
 	// The global config object
 	appname = "feature"
 
-	version   = ""
-	commit    = ""
-	treeState = ""
-	date      = ""
-	builtBy   = ""
+	version = ""
+	commit  = ""
 )
 
 // LogLevelIDs Maps 3rd party enumeration values to their textual representations
@@ -40,14 +37,16 @@ func main() {
 	cmd, config := NewRootCommand()
 
 	cmd.AddCommand(NewGendocsCommand(config))
-	if err := cmd.Execute(); err != nil {
+	err := fang.Execute(
+		context.Background(),
+		cmd,
+		fang.WithVersion(version),
+		fang.WithCommit(commit),
+	)
+	if err != nil {
 		os.Exit(1)
 	}
 }
-
-// ldflags
-// Default: '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'.
-var bversion = buildVersion(version, commit, date, builtBy, treeState)
 
 // NewRootCommand creates a new root command for the application
 func NewRootCommand() (*cobra.Command, *viper.Viper) {
@@ -58,71 +57,46 @@ func NewRootCommand() (*cobra.Command, *viper.Viper) {
 		Use:   "feature [featurename]",
 		Short: "Install devcontainer features",
 		Args:  cobra.MinimumNArgs(1),
+		Long:  "Install devcontainer features on the host system.",
+		Example: `  # Install nodejs
+  feature node
 
-		Long: ui.Long("Install devcontainer features on the host system.",
-			ui.Example{
-				Description: "Install nodejs",
-				Command:     "feature node",
-			},
-			ui.Example{
-				Description: "Install Go",
-				Command:     "feature go",
-			},
-		),
-		Version: bversion.String(),
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			// set the default slog logger to the cobra command
-			slog.SetDefault(cmd.Logger)
-
-			return nil
-		},
-
-		Run: func(cmd *cobra.Command, args []string) {
-			err := checkRootUser(cmd)
-			if err != nil {
-				cmd.PrintErrln(err)
-				os.Exit(1)
+  # Install Go
+  feature go`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := checkRootUser(cmd); err != nil {
+				return err
 			}
 			featureRoot, _ := cmd.Flags().GetString("featureRoot")
-			featureRoot = toolbox.ExpandPath(featureRoot)
-			err = ensureRepo(cmd, featureRoot)
-			if err != nil {
-				cmd.PrintErrln(err)
-				os.Exit(1)
+			featureRoot = expandPath(featureRoot)
+			if err := ensureRepo(cmd, featureRoot); err != nil {
+				return err
 			}
 
-			cmd.Logger.Info("Feature root", "path", featureRoot)
+			slog.Info("Feature root", "path", featureRoot)
 			// check if the featureRoot exists
 			if _, err := os.Stat(featureRoot); os.IsNotExist(err) {
 				// create the featureRoot
-				errmd := os.MkdirAll(featureRoot, 0o755)
-				if errmd != nil {
-					cmd.PrintErrln(errmd)
-					os.Exit(1)
+				if err := os.MkdirAll(featureRoot, 0o755); err != nil {
+					return err
 				}
 			}
 
 			opts, err := options.GetOptionsForFeature(featureRoot, args[0])
 			if err != nil {
-				cmd.PrintErrln(err)
-				os.Exit(1)
+				return err
 			}
-			err = ensureCommonUtils(cmd, featureRoot)
-			if err != nil {
-				cmd.PrintErrln(err)
-				os.Exit(1)
+			if err := ensureCommonUtils(cmd, featureRoot); err != nil {
+				return err
 			}
-			err = installFeature(cmd, featureRoot, args[0])
-			if err != nil {
-				cmd.PrintErrln(err)
-				os.Exit(1)
+			if err := installFeature(cmd, featureRoot, args[0]); err != nil {
+				return err
 			}
-			err = updateEnvironment(cmd, opts)
-			if err != nil {
-				cmd.PrintErrln(err)
-				os.Exit(1)
+			if err := updateEnvironment(cmd, opts); err != nil {
+				return err
 			}
-			ui.Success("Feature installed successfully.", "Restart your shell to apply the changes.")
+			fmt.Println("Feature installed successfully. Restart your shell to apply the changes.")
+			return nil
 		},
 	}
 	rootCmd.Flags().StringP("featureRoot", "r", "~/.features", "Location to checkout feature repository")
@@ -133,41 +107,16 @@ func NewRootCommand() (*cobra.Command, *viper.Viper) {
 	return rootCmd, config
 }
 
-// https://www.asciiart.eu/text-to-ascii-art to make your own
-// just make sure the font doesn't have backticks in the letters or
-// it will break the string quoting
-var asciiName = `
-███████╗███████╗ █████╗ ████████╗██╗   ██╗██████╗ ███████╗
-██╔════╝██╔════╝██╔══██╗╚══██╔══╝██║   ██║██╔══██╗██╔════╝
-█████╗  █████╗  ███████║   ██║   ██║   ██║██████╔╝█████╗
-██╔══╝  ██╔══╝  ██╔══██║   ██║   ██║   ██║██╔══██╗██╔══╝
-██║     ███████╗██║  ██║   ██║   ╚██████╔╝██║  ██║███████╗
-╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝
-`
-
-// buildVersion builds the version info for the application
-func buildVersion(version, commit, date, builtBy, treeState string) goversion.Info {
-	return goversion.GetVersionInfo(
-		goversion.WithAppDetails(appname, "Install devcontainer features anywhere.", "https://bketelsen.github.io/feature"),
-		goversion.WithASCIIName(asciiName),
-		func(i *goversion.Info) {
-			if commit != "" {
-				i.GitCommit = commit
-			}
-			if treeState != "" {
-				i.GitTreeState = treeState
-			}
-			if date != "" {
-				i.BuildDate = date
-			}
-			if version != "" {
-				i.GitVersion = version
-			}
-			if builtBy != "" {
-				i.BuiltBy = builtBy
-			}
-		},
-	)
+// expandPath expands a leading ~ to the user's home directory
+func expandPath(p string) string {
+	if strings.HasPrefix(p, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return p
+		}
+		return filepath.Join(home, p[2:])
+	}
+	return p
 }
 
 func init() {

@@ -1,7 +1,7 @@
 ![logo](_media/barcode.png)
 
 
-#  <small>v0.2.2</small>
+#  <small>v0.3.0</small>
 
 > (ab)Use devcontainer features outside of devcontainers.
 

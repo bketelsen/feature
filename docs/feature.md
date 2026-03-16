@@ -4,18 +4,20 @@ Install devcontainer features
 
 ## Synopsis
 
-  Install devcontainer features on the host system.                             
-
-  - Install nodejs:                                                             
-
-      $ feature node 
-
-  - Install Go:                                                                 
-
-      $ feature go 
+Install devcontainer features on the host system.
 
 ```
 feature [featurename] [flags]
+```
+
+## Examples
+
+```
+  # Install nodejs
+  feature node
+
+  # Install Go
+  feature go
 ```
 
 ## Options

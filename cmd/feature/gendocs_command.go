@@ -25,10 +25,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bketelsen/toolbox/cobra"
-	"github.com/bketelsen/toolbox/cobra/doc"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
+	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 	"github.com/spf13/viper"
 )
 
@@ -62,8 +62,6 @@ is in markdown format.`,
 			})
 		},
 	}
-
-	//	gendocsCmd.Flags().StringP("basepath", "b", "feature", "Base path for the documentation (default is /feature)")
 
 	gendocsCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
 		_ = config.BindPFlag("docs.output", cmd.Flags().Lookup("output"))
