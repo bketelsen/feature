@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bketelsen/feature/internal/oci"
 	"github.com/bketelsen/feature/internal/options"
 	"github.com/charmbracelet/fang"
 	"github.com/charmbracelet/lipgloss"
@@ -58,38 +59,59 @@ func NewRootCommand() (*cobra.Command, *viper.Viper) {
 		Short: "Install devcontainer features",
 		Args:  cobra.MinimumNArgs(1),
 		Long:  "Install devcontainer features on the host system.",
-		Example: `  # Install nodejs
+		Example: `  # Install nodejs (built-in)
   feature node
 
-  # Install Go
-  feature go`,
+  # Install Go (built-in)
+  feature go
+
+  # Install a community feature from an OCI registry
+  feature ghcr.io/devcontainers-extra/features/go-task:1`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkRootUser(cmd); err != nil {
 				return err
 			}
 			featureRoot, _ := cmd.Flags().GetString("featureRoot")
 			featureRoot = expandPath(featureRoot)
-			if err := ensureRepo(cmd, featureRoot); err != nil {
-				return err
-			}
 
 			slog.Info("Feature root", "path", featureRoot)
-			// check if the featureRoot exists
-			if _, err := os.Stat(featureRoot); os.IsNotExist(err) {
-				// create the featureRoot
-				if err := os.MkdirAll(featureRoot, 0o755); err != nil {
+
+			var featureDir string
+			var opts options.FeatureOptions
+
+			if oci.IsOCIRef(args[0]) {
+				// OCI community feature
+				ref, err := oci.ParseFeatureRef(args[0])
+				if err != nil {
+					return err
+				}
+				updateRepo, _ := cmd.Flags().GetBool("updateRepo")
+				cacheDir := filepath.Join(featureRoot+"-oci", ref.Registry, ref.Namespace, ref.Name, ref.Tag)
+				featureDir, err = oci.PullFeature(cmd.Context(), ref, cacheDir, updateRepo)
+				if err != nil {
+					return err
+				}
+				opts, err = options.GetOptionsForPath(featureDir)
+				if err != nil {
+					return err
+				}
+			} else {
+				// Built-in feature
+				if err := ensureRepo(cmd, featureRoot); err != nil {
+					return err
+				}
+				featureDir = filepath.Join(featureRoot, "src", args[0])
+				var err error
+				opts, err = options.GetOptionsForFeature(featureRoot, args[0])
+				if err != nil {
+					return err
+				}
+				if err := ensureCommonUtils(cmd, featureRoot); err != nil {
 					return err
 				}
 			}
 
-			opts, err := options.GetOptionsForFeature(featureRoot, args[0])
-			if err != nil {
-				return err
-			}
-			if err := ensureCommonUtils(cmd, featureRoot); err != nil {
-				return err
-			}
-			if err := installFeature(cmd, featureRoot, args[0]); err != nil {
+			if err := installFeature(cmd, featureDir); err != nil {
 				return err
 			}
 			if err := updateEnvironment(cmd, opts); err != nil {

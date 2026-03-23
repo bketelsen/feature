@@ -40,32 +40,26 @@ type Customizations struct {
 	Vscode Vscode `json:"vscode"`
 }
 
-func GetOptionsForFeature(root, feature string) (FeatureOptions, error) {
-	// make sure the featureRoot exists
-	if _, err := os.Stat(root); os.IsNotExist(err) {
-		return FeatureOptions{}, err
-	}
-
-	// make sure the feature exists
-	if _, err := os.Stat(filepath.Join(root, "src", feature)); os.IsNotExist(err) {
-		return FeatureOptions{}, fmt.Errorf("feature %s not found", feature)
-	}
-
-	// Construct the path to the devcontainer-feature.json file
-	jsonPath := filepath.Join(root, "src", feature, "devcontainer-feature.json")
-	// Read the file
+// GetOptionsForPath reads and parses devcontainer-feature.json from an arbitrary directory.
+func GetOptionsForPath(featureDir string) (FeatureOptions, error) {
+	jsonPath := filepath.Join(featureDir, "devcontainer-feature.json")
 	bb, err := os.ReadFile(jsonPath)
 	if err != nil {
-		return FeatureOptions{}, err
+		return FeatureOptions{}, fmt.Errorf("feature metadata not found at %s: %w", jsonPath, err)
 	}
 
-	// Unmarshal the file into a FeatureOptions struct
 	var fo FeatureOptions
-	err = json.Unmarshal(bb, &fo)
-	if err != nil {
+	if err := json.Unmarshal(bb, &fo); err != nil {
 		return FeatureOptions{}, err
 	}
-
-	// Return the struct
 	return fo, nil
+}
+
+// GetOptionsForFeature reads and parses devcontainer-feature.json for a built-in feature.
+func GetOptionsForFeature(root, feature string) (FeatureOptions, error) {
+	featureDir := filepath.Join(root, "src", feature)
+	if _, err := os.Stat(featureDir); os.IsNotExist(err) {
+		return FeatureOptions{}, fmt.Errorf("feature %s not found", feature)
+	}
+	return GetOptionsForPath(featureDir)
 }

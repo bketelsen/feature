@@ -71,12 +71,12 @@ func ensureCommonUtils(_ *cobra.Command, featureRoot string) error {
 	return nil
 }
 
-func installFeature(_ *cobra.Command, featureRoot, feature string) error {
+func installFeature(_ *cobra.Command, featureDir string) error {
 	fmt.Println("Installing requested feature, please wait...")
 
-	featureInstallPath := filepath.Join(featureRoot, "src", feature, "install.sh")
+	featureInstallPath := filepath.Join(featureDir, "install.sh")
 	if _, err := os.Stat(featureInstallPath); os.IsNotExist(err) {
-		return fmt.Errorf("feature %s does not have an install script", feature)
+		return fmt.Errorf("feature at %s does not have an install script", featureDir)
 	}
 	command := "bash"
 	args := []string{featureInstallPath}
