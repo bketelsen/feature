@@ -2,7 +2,11 @@
 
 ## FeatureOptions
 
-Defined in `internal/options/options.go`. Parsed from `devcontainer-feature.json` files via `GetOptionsForFeature(root, feature)`.
+Defined in `internal/options/options.go`. Parsed from `devcontainer-feature.json` files.
+
+Two entry points:
+- `GetOptionsForFeature(root, feature)` — reads from `{root}/src/{feature}/devcontainer-feature.json` (built-in features)
+- `GetOptionsForPath(featureDir)` — reads from `{featureDir}/devcontainer-feature.json` (any path, used by OCI flow)
 
 ```go
 type FeatureOptions struct {
@@ -48,9 +52,38 @@ type Vscode struct {
 }
 ```
 
+## FeatureRef
+
+Defined in `internal/oci/oci.go`. Represents a parsed OCI feature reference for community features.
+
+```go
+type FeatureRef struct {
+    Registry  string // e.g., "ghcr.io"
+    Namespace string // e.g., "devcontainers-extra/features"
+    Name      string // e.g., "go-task"
+    Tag       string // e.g., "1" (default: "latest")
+}
+```
+
+### Parsing
+
+`ParseFeatureRef(ref)` splits an OCI reference string:
+- Registry = first path segment (before first `/`)
+- Namespace = middle segments joined by `/`
+- Name and Tag = last segment split on `:` (tag defaults to `"latest"`)
+- Requires at least 3 path segments (registry + namespace + name)
+
+Examples:
+- `ghcr.io/devcontainers/features/go:1` → `{ghcr.io, devcontainers/features, go, 1}`
+- `ghcr.io/devcontainers-extra/features/go-task` → `{ghcr.io, devcontainers-extra/features, go-task, latest}`
+
+### Cache Layout
+
+OCI features are cached at `{featureRoot}-oci/{registry}/{namespace}/{name}/{tag}/`. The cache directory contains the extracted feature artifact including `install.sh` and `devcontainer-feature.json`.
+
 ## JSON Source
 
-The `devcontainer-feature.json` file lives at `{featureRoot}/src/{feature}/devcontainer-feature.json`. Example structure:
+The `devcontainer-feature.json` file lives at `{featureRoot}/src/{feature}/devcontainer-feature.json` for built-in features, or in the OCI cache directory for community features. Example structure:
 
 ```json
 {
