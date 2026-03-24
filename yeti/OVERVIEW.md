@@ -2,19 +2,22 @@
 
 ## Purpose
 
-`feature` is a Go CLI tool that installs [DevContainer features](https://github.com/devcontainers/features) on host systems outside of devcontainers — such as VPSes, VMs, and bare-metal Linux machines. It clones the upstream devcontainers/features repository, runs feature install scripts as root, and persists the feature's environment variables via `/etc/profile.d/` scripts.
+`feature` is a Go CLI tool that installs [DevContainer features](https://github.com/devcontainers/features) on host systems outside of devcontainers — such as VPSes, VMs, and bare-metal Linux machines. It supports both built-in features (from a local clone of the upstream `devcontainers/features` repo) and community features pulled from OCI registries (e.g., `ghcr.io`). It runs feature install scripts as root and persists feature environment variables via `/etc/profile.d/` scripts.
 
 ## Architecture
 
 ```
 cmd/feature/           CLI entry point and command logic
-  main.go              Root cobra command, flag definitions, run orchestration
-  root.go              Core installation logic (clone, install, env update)
+  main.go              Root cobra command, dual-path install orchestration
+  root.go              Helper functions (root check, repo clone, install, env update)
   config.go            Viper-based configuration setup
   gendocs_command.go   Hidden command to generate CLI markdown docs
 
+internal/oci/          OCI registry client for community features
+  oci.go               Reference parsing, artifact pulling, tgz extraction
+
 internal/options/      Feature metadata parsing
-  options.go           Parses devcontainer-feature.json into FeatureOptions struct
+  options.go           Parses devcontainer-feature.json from built-in or arbitrary paths
 
 scripts/               Build, commit, and release automation
 docs/                  User-facing documentation (Docsify site)
@@ -22,22 +25,46 @@ docs/                  User-facing documentation (Docsify site)
 
 ### Execution Flow
 
+The CLI accepts a feature argument that is either a short name (built-in) or an OCI reference (community). The path is chosen by `oci.IsOCIRef()`, which checks whether the first path segment contains a `.` (indicating a registry hostname).
+
+#### Built-in Feature Path (`feature node`)
+
 1. **Root check** — `checkRootUser()` verifies UID 0
 2. **Repository setup** — `ensureRepo()` clones `devcontainers/features` to `--featureRoot` (default `~/.features`), optionally pulls updates
-3. **Dependency install** — `ensureCommonUtils()` installs `common-utils` if marker `/usr/local/etc/vscode-dev-containers/common` is absent
-4. **Feature install** — `installFeature()` runs `{featureRoot}/src/{feature}/install.sh` via bash
-5. **Environment update** — `updateEnvironment()` reads `ContainerEnv` from `devcontainer-feature.json` and writes `/etc/profile.d/devcontainer-{id}.sh`
+3. **Metadata** — `options.GetOptionsForFeature(root, feature)` reads `{featureRoot}/src/{feature}/devcontainer-feature.json`
+4. **Dependency install** — `ensureCommonUtils()` installs `common-utils` if marker `/usr/local/etc/vscode-dev-containers/common` is absent
+5. **Feature install** — `installFeature()` runs `{featureDir}/install.sh` via bash
+6. **Environment update** — `updateEnvironment()` reads `ContainerEnv` from metadata and writes `/etc/profile.d/devcontainer-{id}.sh`
+
+#### OCI Community Feature Path (`feature ghcr.io/devcontainers-extra/features/go-task:1`)
+
+1. **Root check** — same as above
+2. **Parse reference** — `oci.ParseFeatureRef()` splits into registry, namespace, name, and tag
+3. **Pull & cache** — `oci.PullFeature()` downloads the OCI artifact to `{featureRoot}-oci/{registry}/{namespace}/{name}/{tag}/`, skipping download if cached (unless `--updateRepo` forces refresh)
+4. **Metadata** — `options.GetOptionsForPath(featureDir)` reads `devcontainer-feature.json` from the extracted directory
+5. **Feature install** — same `installFeature()` as built-in path
+6. **Environment update** — same `updateEnvironment()` as built-in path
 
 ## Key Patterns
 
 ### Root-Only Execution
 The tool requires root because feature install scripts modify system packages and directories. Enforced at command start via `checkRootUser()`.
 
-### Git-Based Feature Source
-Features come from a local clone of `github.com/devcontainers/features`. The `--updateRepo` / `-u` flag triggers a `git pull` before installation. Feature scripts live at `{featureRoot}/src/{name}/install.sh`.
+### Dual Feature Sources
+Features can come from two sources, unified into a single install flow:
+- **Built-in**: Local clone of `github.com/devcontainers/features` at `{featureRoot}/src/{name}/`
+- **Community/OCI**: Pulled from OCI registries (e.g., `ghcr.io`) to `{featureRoot}-oci/` cache
+
+### OCI Reference Detection
+`oci.IsOCIRef()` classifies arguments: if the first path segment (before `/`) contains a `.`, it's an OCI reference (e.g., `ghcr.io/...`). Otherwise it's a built-in short name. This avoids ambiguity since bare feature names like `node` have no dots.
+
+### OCI Pulling & Caching
+`oci.PullFeature()` uses `oras.land/oras-go/v2` for registry operations with anonymous auth (sufficient for public registries). It handles both OCI image manifests and Docker v2 manifests. The layer is extracted from a `.tgz` with zip-slip prevention. Caching is tag-based: if `install.sh` exists in the cache dir, re-download is skipped unless `--updateRepo` is set.
 
 ### Feature Metadata
-Each feature has a `devcontainer-feature.json` parsed into `FeatureOptions` (see [data-model.md](data-model.md)). The `ContainerEnv` map drives environment variable persistence.
+Each feature has a `devcontainer-feature.json` parsed into `FeatureOptions` (see [data-model.md](data-model.md)). Two entry points:
+- `GetOptionsForFeature(root, feature)` — for built-in features, constructs path from root + `src/` + name
+- `GetOptionsForPath(featureDir)` — for any feature directory (used by OCI path)
 
 ### Environment Persistence
 Container environment variables from feature metadata are written to `/etc/profile.d/devcontainer-{id}.sh` as `export KEY=VALUE` lines, making them available in new shell sessions.
@@ -54,8 +81,8 @@ Cobra for commands, Charmbracelet (lipgloss, fang) for terminal styling, `automa
 
 | Flag / Env Var | Default | Description |
 |---|---|---|
-| `-r, --featureRoot` / `FEATURE_FEATUREROOT` | `~/.features` | Local path for cloned features repo |
-| `-u, --updateRepo` / `FEATURE_UPDATEREPO` | `false` | Pull latest features before install |
+| `-r, --featureRoot` / `FEATURE_FEATUREROOT` | `~/.features` | Local path for cloned features repo (OCI cache goes to `{value}-oci/`) |
+| `-u, --updateRepo` / `FEATURE_UPDATEREPO` | `false` | Pull latest features before install; also forces OCI cache refresh |
 | `NOCOLOR` | (unset) | Disable colored terminal output |
 
 ## Build & Release
@@ -67,5 +94,5 @@ Cobra for commands, Charmbracelet (lipgloss, fang) for terminal styling, `automa
 - **Versioning**: Semantic versioning via `svu`, conventional commits enforced
 
 See also:
-- [Data Model](data-model.md) — `FeatureOptions` struct and JSON schema
+- [Data Model](data-model.md) — `FeatureOptions` struct, `FeatureRef` struct, and JSON schema
 - [Build & Release](build-release.md) — Detailed build, lint, CI, and release configuration

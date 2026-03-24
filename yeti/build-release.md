@@ -26,6 +26,17 @@ Go 1.24 target. Notable rules:
 - **Tag conventions**: JSON → goCamel, YAML → snake_case
 - Linters include: bodyclose, gocritic, misspell, revive, unconvert, unparam, and others
 
+## Key Dependencies
+
+| Module | Purpose |
+|---|---|
+| `github.com/spf13/cobra` | CLI command framework |
+| `github.com/spf13/viper` | Configuration (flags, env vars) |
+| `github.com/charmbracelet/lipgloss` + `fang` | Terminal styling and command wiring |
+| `go.uber.org/automaxprocs` | Container-aware GOMAXPROCS |
+| `oras.land/oras-go/v2` | OCI registry client for community features |
+| `github.com/opencontainers/image-spec` | OCI image/manifest types |
+
 ## GoReleaser (`.goreleaser.yaml`)
 
 - **Targets**: Linux amd64, arm64 only
