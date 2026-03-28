@@ -44,7 +44,9 @@ func ensureRepo(cmd *cobra.Command, featureRoot string) error {
 	updateRepo, _ := cmd.Flags().GetBool("updateRepo")
 	if updateRepo {
 		args = []string{"pull"}
-		cerr := exec.Command(command, args...).Run()
+		pullCmd := exec.Command(command, args...)
+		pullCmd.Dir = featureRoot
+		cerr := pullCmd.Run()
 		if cerr != nil {
 			return cerr
 		}
