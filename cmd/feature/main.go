@@ -122,9 +122,9 @@ func NewRootCommand() (*cobra.Command, *viper.Viper) {
 		},
 	}
 	rootCmd.Flags().StringP("featureRoot", "r", "~/.features", "Location to checkout feature repository")
-	_ = config.BindPFlag("featureRoot", rootCmd.PersistentFlags().Lookup("featureRoot"))
+	_ = config.BindPFlag("featureRoot", rootCmd.Flags().Lookup("featureRoot"))
 	rootCmd.Flags().BoolP("updateRepo", "u", false, "Update the feature repository")
-	_ = config.BindPFlag("updateRepo", rootCmd.PersistentFlags().Lookup("updateRepo"))
+	_ = config.BindPFlag("updateRepo", rootCmd.Flags().Lookup("updateRepo"))
 
 	return rootCmd, config
 }
