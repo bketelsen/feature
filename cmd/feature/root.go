@@ -9,10 +9,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 
 	"github.com/bketelsen/feature/internal/options"
 	"github.com/spf13/cobra"
 )
+
+// validEnvKey matches shell-safe environment variable names.
+var validEnvKey = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func checkRootUser(_ *cobra.Command) error {
 	if os.Geteuid() != 0 {
@@ -103,7 +107,10 @@ func updateEnvironment(_ *cobra.Command, opts options.FeatureOptions) error {
 		}
 		defer f.Close()
 		for k, v := range opts.ContainerEnv {
-			_, _ = fmt.Fprintf(f, "export %s=%s\n", k, v)
+			if !validEnvKey.MatchString(k) {
+				return fmt.Errorf("invalid environment variable name: %q", k)
+			}
+			_, _ = fmt.Fprintf(f, "export %s=%q\n", k, v)
 		}
 	}
 	return nil
