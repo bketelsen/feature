@@ -39,17 +39,35 @@ Go 1.24 target. Notable rules:
 
 ## GoReleaser (`.goreleaser.yaml`)
 
+- **Distribution**: GoReleaser Pro (`goreleaser-pro` in CI)
 - **Targets**: Linux amd64, arm64 only
 - **Static linking**: `CGO_ENABLED=0`
 - **ldflags**: Injects `version`, `commit`, `date`, `builtBy` into `main` package
-- **Archives**: tar.gz format, includes README, LICENSE, completions, manpages
+- **Pre-hooks**: `go mod tidy`, generates completions and manpages
+- **Archives**: tar.gz format, includes manpages
 - **Changelog**: GitHub API, grouped by type (Features, Security, Bug fixes, Docs), filters test/chore commits
+- **Announcements**: Bluesky integration configured (currently disabled)
+
+## CI — GitHub Actions (`.github/workflows/`)
+
+### `go.yml` — Build & Test
+Triggers on push/PR to `main`:
+1. Sets up Go 1.23
+2. `go build -v ./cmd/feature`
+3. `go test -v ./...`
+
+### `release.yml` — GoReleaser
+Triggers on tag push (`*`):
+1. Sets up Go (stable)
+2. Runs GoReleaser Pro (`goreleaser-pro` distribution, `~> v2`)
+3. Requires `GITHUB_TOKEN` and `GORELEASER_KEY` secrets
 
 ## CI — Woodpecker (`.woodpecker/workflow.yaml`)
 
 Triggers on push to `main`:
-1. `go build ./cmd/feature`
-2. `./feature --version`
+1. Uses `golang:1.24` image
+2. `go build ./cmd/feature`
+3. `./feature --version`
 
 ## Versioning (`.svu.yaml`)
 

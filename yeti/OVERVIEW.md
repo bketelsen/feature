@@ -89,8 +89,9 @@ Cobra for commands, Charmbracelet (lipgloss, fang) for terminal styling, `automa
 
 - **Build**: `task build` — compiles binary and generates docs
 - **Lint**: golangci-lint with strict ruleset (see `.golangci.yaml`)
-- **Release**: GoReleaser builds static Linux binaries (amd64, arm64), generates manpages and shell completions
-- **CI**: Woodpecker pipeline on push to main — builds and runs version check
+- **Release**: GoReleaser Pro builds static Linux binaries (amd64, arm64), generates manpages and shell completions
+- **CI (GitHub Actions)**: `go.yml` on push/PR to main — builds and tests; `release.yml` on tags — runs GoReleaser Pro
+- **CI (Woodpecker)**: Pipeline on push to main — builds and runs version check
 - **Versioning**: Semantic versioning via `svu`, conventional commits enforced
 
 See also:
