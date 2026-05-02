@@ -67,7 +67,7 @@ Each feature has a `devcontainer-feature.json` parsed into `FeatureOptions` (see
 - `GetOptionsForPath(featureDir)` — for any feature directory (used by OCI path)
 
 ### Environment Persistence
-Container environment variables from feature metadata are written to `/etc/profile.d/devcontainer-{id}.sh` as `export KEY=VALUE` lines, making them available in new shell sessions.
+Container environment variables from feature metadata are written to `/etc/profile.d/devcontainer-{id}.sh` as `export KEY="VALUE"` lines (values are safely quoted via Go's `%q` verb), making them available in new shell sessions. Environment variable keys are validated to contain only alphanumeric characters and underscores to prevent shell injection.
 
 ### Configuration Layering
 Viper binds flags and environment variables with prefix `FEATURE_`. Dots and dashes in flag names are stripped for env var matching:
