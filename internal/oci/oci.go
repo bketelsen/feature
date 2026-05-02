@@ -176,6 +176,10 @@ func PullFeature(ctx context.Context, ref FeatureRef, cacheDir string, forceUpda
 	return cacheDir, nil
 }
 
+// maxExtractFileSize is the maximum allowed size for a single file extracted from a tar archive.
+// This prevents decompression bombs from exhausting disk space.
+const maxExtractFileSize = 500 * 1024 * 1024 // 500 MB
+
 // extractTGZ extracts a .tgz archive from r into targetDir with zip-slip prevention.
 func extractTGZ(r io.Reader, targetDir string) error {
 	gz, err := gzip.NewReader(r)
@@ -206,6 +210,9 @@ func extractTGZ(r io.Reader, targetDir string) error {
 				return err
 			}
 		case tar.TypeReg:
+			if header.Size > maxExtractFileSize {
+				return fmt.Errorf("tar entry %q size %d exceeds maximum allowed size %d", header.Name, header.Size, maxExtractFileSize)
+			}
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 				return err
 			}
@@ -213,11 +220,18 @@ func extractTGZ(r io.Reader, targetDir string) error {
 			if err != nil {
 				return err
 			}
-			if _, err := io.Copy(f, tr); err != nil {
+			if _, err := io.Copy(f, io.LimitReader(tr, maxExtractFileSize+1)); err != nil {
 				f.Close()
 				return err
 			}
+			fi, err := f.Stat()
 			f.Close()
+			if err != nil {
+				return err
+			}
+			if fi.Size() > maxExtractFileSize {
+				return fmt.Errorf("tar entry %q decompressed to %d bytes, exceeding maximum allowed size %d", header.Name, fi.Size(), maxExtractFileSize)
+			}
 		}
 	}
 	return nil
