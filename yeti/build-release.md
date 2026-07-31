@@ -21,7 +21,7 @@ The project uses [Task](https://taskfile.dev/) (`Taskfile.yml`) with `GO111MODUL
 
 ## Linting (`.golangci.yaml`)
 
-Go 1.24 target. Notable rules:
+Go 1.26.5 target. Notable rules:
 - **Forbidden imports**: `github.com/pkg/errors` (use stdlib), `math/rand$` (use v2), `ioutil.*`
 - **Tag conventions**: JSON → goCamel, YAML → snake_case
 - Linters include: bodyclose, gocritic, misspell, revive, unconvert, unparam, and others
@@ -52,20 +52,20 @@ Go 1.24 target. Notable rules:
 
 ### `go.yml` — Build & Test
 Triggers on push/PR to `main`:
-1. Sets up Go 1.23
+1. Sets up Go 1.26.5
 2. `go build -v ./cmd/feature`
 3. `go test -v ./...`
 
 ### `release.yml` — GoReleaser
 Triggers on tag push (`*`):
-1. Sets up Go (stable)
+1. Sets up Go 1.26.5
 2. Runs GoReleaser Pro (`goreleaser-pro` distribution, `~> v2`)
 3. Requires `GITHUB_TOKEN` and `GORELEASER_KEY` secrets
 
 ## CI — Woodpecker (`.woodpecker/workflow.yaml`)
 
 Triggers on push to `main`:
-1. Uses `golang:1.24` image
+1. Uses `golang:1.26.5` image
 2. `go build ./cmd/feature`
 3. `./feature --version`
 
